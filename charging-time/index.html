@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Battery Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .battery-container {
+            position: relative;
+            width: 280px;
+            margin: 0 auto;
+        }
+
+        .battery {
+            width: 100%;
+            height: 140px;
+            border: 4px solid #fff;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .battery::after {
+            content: '';
+            height: 40%;
+            width: 12px;
+            background: #fff;
+            position: absolute;
+            right: -16px;
+            top: 30%;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .battery-level {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #00b09b, #96c93d);
+            transition: all 1s ease;
+            position: relative;
+        }
+
+        .battery-low {
+            background: linear-gradient(to right, #ff416c, #ff4b2b);
+        }
+
+        .battery-medium {
+            background: linear-gradient(to right, #f7b733, #fc4a1a);
+        }
+
+        .info-display {
+            color: #fff;
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .status {
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .percentage {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .time-estimate {
+            font-size: 20px;
+            opacity: 0.9;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .charging {
+            color: #96c93d;
+            animation: pulse 2s infinite;
+        }
+
+        .not-charging {
+            color: #ff416c;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        @media (max-width: 480px) {
+            .battery-container {
+                width: 220px;
+            }
+
+            .battery {
+                height: 110px;
+            }
+
+            .percentage {
+                font-size: 36px;
+            }
+
+            .status {
+                font-size: 20px;
+            }
+
+            .time-estimate {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="battery-container">
+            <div class="battery">
+                <div class="battery-level" id="level-indicator"></div>
+            </div>
+        </div>
+
+        <div class="info-display">
+            <div class="status" id="status">Checking...</div>
+            <div class="percentage" id="percentage">0%</div>
+            <div class="time-estimate" id="time">Please wait...</div>
+        </div>
+    </div>
+
+    <script>
+        const levelIndicator = document.getElementById('level-indicator');
+        const statusElement = document.getElementById('status');
+        const percentageElement = document.getElementById('percentage');
+        const timeElement = document.getElementById('time');
+
+        function calculateTime(battery) {
+            if (!battery.charging) return null;
+            
+            const currentLevel = battery.level * 100;
+            const remainingCapacity = 100 - currentLevel;
+            const estimatedTimeInSeconds = remainingCapacity * 120;
+            
+            const hours = Math.floor(estimatedTimeInSeconds / 3600);
+            const minutes = Math.floor((estimatedTimeInSeconds % 3600) / 60);
+            
+            if (hours > 0) {
+                return `Time to full: ${hours}h ${minutes}m`;
+            } else {
+                return `Time to full: ${minutes}m`;
+            }
+        }
+
+        function updateBatteryUI(battery) {
+            const level = Math.floor(battery.level * 100);
+            
+            levelIndicator.style.width = level + '%';
+            levelIndicator.className = 'battery-level';
+            
+            if (level <= 20) {
+                levelIndicator.classList.add('battery-low');
+            } else if (level <= 50) {
+                levelIndicator.classList.add('battery-medium');
+            }
+
+            percentageElement.textContent = `${level}%`;
+
+            if (battery.charging) {
+                statusElement.textContent = 'Charging';
+                statusElement.className = 'status charging';
+                
+                if (level === 100) {
+                    timeElement.textContent = 'Fully Charged!';
+                } else {
+                    timeElement.textContent = calculateTime(battery);
+                }
+            } else {
+                statusElement.textContent = 'Not Charging';
+                statusElement.className = 'status not-charging';
+                timeElement.textContent = 'Connect Charger';
+            }
+        }
+
+        function initBattery() {
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    updateBatteryUI(battery);
+
+                    battery.addEventListener('levelchange', () => updateBatteryUI(battery));
+                    battery.addEventListener('chargingchange', () => updateBatteryUI(battery));
+                });
+            } else {
+                statusElement.textContent = 'Not Available';
+                timeElement.textContent = 'Battery Status Not Accessible';
+            }
+        }
+
+        initBattery();
+        document.addEventListener('touchstart', function() {}, true);
+    </script>
+</body>
+</html>
+
